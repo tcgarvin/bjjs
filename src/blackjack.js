@@ -119,11 +119,11 @@ function BlackJackGame(houseRules) {
 
     // Go around the table so players can play
     for(var i = 0; i < playerHands.length; i++) {
-      var splitHands = this.playHand(playerHands[i], dealerHand);
+      var splitHands = this.playHand(playerHands[i], showingCard);
       // If the hands split, make sure they're accounted for and played.
       if (splitHands) {
-        this.playHand(splitHands[0], dealerHand, true);
-        this.playHand(splitHands[1], dealerHand, true);
+        this.playHand(splitHands[0], showingCard, true);
+        this.playHand(splitHands[1], showingCard, true);
         // The splice will increase the length by 1.  We i++ to make sure the
         // next iteration is the hand after these splits.
         playerHands.splice(i,1,splitHands[0],splitHands[1]);
@@ -150,7 +150,7 @@ function BlackJackGame(houseRules) {
     this.resolveWinnings(playerHands, dealerHand);
   };
 
-  this.playHand = function(playerHand, dealerHand, isSplit) {
+  this.playHand = function(playerHand, dealerCard, isSplit) {
     var game = this;
     var player = playerHand.player;
     var hand = playerHand.hand;
@@ -166,8 +166,8 @@ function BlackJackGame(houseRules) {
     }
     while(!playerDone) {
       // TODO var validPlays = this.getValidPlaysFor(hand);
-      var validPlays;
-      var play = player.choosePlay(hand, dealerHand, validPlays, this);
+      var validPlays = ["hit", "stay"];
+      var play = player.choosePlay(hand, dealerCard, validPlays, this);
 
       switch (play) {
         case "stay":

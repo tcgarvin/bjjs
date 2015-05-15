@@ -15,8 +15,8 @@ function Player(strategy) {
     return bet;
   };
 
-  this.choosePlay = function(hand, dealerHand, validPlays, game) {
-    return strategy.choosePlay(hand, dealerHand, validPlays, this, game);
+  this.choosePlay = function(hand, dealerCard, validPlays, game) {
+    return strategy.choosePlay(hand, dealerCard, validPlays, this, game);
   };
 
   this.collectWinnings = function(bet) {
