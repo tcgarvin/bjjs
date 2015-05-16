@@ -119,15 +119,14 @@ function BlackJackGame(houseRules) {
 
     // Go around the table so players can play
     for(var i = 0; i < playerHands.length; i++) {
-      var splitHands = this.playHand(playerHands[i], showingCard);
-      // If the hands split, make sure they're accounted for and played.
-      if (splitHands) {
-        this.playHand(splitHands[0], showingCard, true);
-        this.playHand(splitHands[1], showingCard, true);
-        // The splice will increase the length by 1.  We i++ to make sure the
-        // next iteration is the hand after these splits.
-        playerHands.splice(i,1,splitHands[0],splitHands[1]);
-        i++;
+      var resultingHands = this.playHand(playerHands[i], showingCard);
+      // If the hands split, splice them into the hand list, and make sure we
+      // fast forward past them, as they're already played.
+      if (resultingHands.length > 1) {
+        spliceArgs = [i, 1];
+        spliceArgs.push.apply(spliceArgs, resultingHands);
+        playerHands.splice.apply(playerHands, spliceArgs);
+        i += resultingHands.length - 1;
       }
     }
 
@@ -150,10 +149,32 @@ function BlackJackGame(houseRules) {
     this.resolveWinnings(playerHands, dealerHand);
   };
 
-  this.playHand = function(playerHand, dealerCard, isSplit) {
+  this.getValidPlaysFor = function(hand, isSplit, splitOK) {
+    var valid = ["stay", "hit"];
+    var cards = hand.getCards();
+    if (cards.length == 2) {
+      // If it's the start of a hand, there may be other options.
+      valid.push("double");
+      if (!isSplit) {
+        valid.push("surrender");
+      }
+      if (splitOK && (cards[0].rank == cards[1].rank)) {
+        valid.push("split");
+      }
+    }
+    return valid;
+  };
+
+  this.playHand = function(playerHand, dealerCard, handsAfterSplits) {
     var game = this;
     var player = playerHand.player;
     var hand = playerHand.hand;
+    var bet = playerHand.bet;
+    if (!handsAfterSplits) { handsAfterSplits = 1; }
+    var splitOK = ( handsAfterSplits < houseRules.maxHandsAfterSplit ); 
+    var isSplit = ( handsAfterSplits > 1 );
+
+    var resultingHands = [playerHand];
 
     function playerDoes(what) {
       game.emit("story", player.getName() + " " + what);
@@ -165,9 +186,12 @@ function BlackJackGame(houseRules) {
       playerDone = true;
     }
     while(!playerDone) {
-      // TODO var validPlays = this.getValidPlaysFor(hand);
-      var validPlays = ["hit", "stay"];
+      var validPlays = this.getValidPlaysFor(hand, isSplit, splitOK);
       var play = player.choosePlay(hand, dealerCard, validPlays, this);
+
+      if (validPlays.indexOf(play) == -1) {
+        throw "Invalid play " + play + " selected!";
+      }
 
       switch (play) {
         case "stay":
@@ -184,25 +208,40 @@ function BlackJackGame(houseRules) {
 
         case "split":
           playerDoes("splits");
-          var originalBet = hand.getBet();
-          var split1 = new Hand(originalBet);
+          handsAfterSplits++;
+
+          var split1 = new Hand();
           split1.dealCard(hand.getCardAt(0));
           split1.dealCard(shoe.draw());
+          var split1PlayerHand = {
+            player: player,
+            hand: split1,
+            bet: bet
+          };
+          var split1Hands = this.playHand(split1PlayerHand, dealerHand, handsAfterSplits);
 
-          var newBet = new Bet(originalBet.getAmount());
-          player.changeBalance(newBet.getAmount());
-          var split2 = new Hand(newBet);
+          var split2 = new Hand();
+          var newBet = new Bet(bet.getAmount());
+          player.changeBalance(newBet.getAmount() * -1);
           split2.dealCard(hand.getCardAt(1));
           split2.dealCard(shoe.draw());
+          var split2PlayerHand = {
+            player: player,
+            hand: split2,
+            bet: newBet
+          };
+          var split2Hands = this.playHand(split2PlayerHand, dealerHand, handsAfterSplits);
 
-          // Break out with the two new hands.  The caller must account for
-          // them and ensure they get played out.
-          return [split1, split2];
+          resultingHands = split1hands;
+          resultingHands.push.apply(resultingHands, split2Hands);
+
+          playerDone = true;
           break;
 
         case "double":
           playerDoes("doubles down");
-          hand.getBet().double();
+          player.changeBalance(playerHand.bet.getAmount() * -1);
+          playerHand.bet.double();
           var card = shoe.draw();
           hand.dealCard(card);
           playerDoes("draws a " + card.toString() + ". (" + (hand.isSoft() ? "soft" : "hard") + " " + hand.getValue() + ")");
@@ -211,8 +250,9 @@ function BlackJackGame(houseRules) {
 
         case "surrender":
           playerDoes("surrenders");
-          hand.getBet().surrender();
+          playerHand.bet.surrender();
           playerDone = true;
+          break;
       }
 
       if (hand.getValue() == 21) {
@@ -223,6 +263,8 @@ function BlackJackGame(houseRules) {
         playerDone = true;
       }
     }
+
+    return resultingHands;
   }
 
   // I forget how to do emit right now.
@@ -274,6 +316,10 @@ function BlackJackGame(houseRules) {
     if (!houseRules.decks) {
       houseRules.decks = 2;
     }
+    if (!houseRules.maxHandsAfterSplits) {
+      houseRules.maxHandsAfterSplits = 2;
+    }
+
   }
 }
 

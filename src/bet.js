@@ -8,8 +8,12 @@ function Bet(amount) {
 
   // Double down
   this.double = function() {
-    amount = amount * 2;
+    amount *= 2;
     doubled = true;
+  }
+  
+  this.isDoubled = function() {
+    return doubled;
   }
 
   // Get half your money back.
