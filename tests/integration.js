@@ -5,6 +5,8 @@ var BasicStrategy = require('../src/strategy/BasicStrategy.js');
 
 var game = new BlackJackGame({decks:4});
 
+game.on('story', console.log);
+
 var player1 = new Player(new DealerStrategy());
 player1.setName("A.J.");
 game.addPlayer(player1);

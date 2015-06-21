@@ -1,3 +1,6 @@
+var util = require('util');
+var EventEmitter = require('events').EventEmitter;
+
 var Shoe = require('./shoe.js');
 var Hand = require('./hand.js');
 var Player = require('./player.js');
@@ -10,6 +13,7 @@ var DealerStrategy = require('./strategy/DealerStrategy.js');
  * game progression, mirroring real life.)
  */
 function BlackJackGame(houseRules) {
+  EventEmitter.call(this);
   initHouseRules();
 
   var maxPlayers = houseRules.decks * 5; // Most games shouldn't get near this.
@@ -49,7 +53,7 @@ function BlackJackGame(houseRules) {
     // Shuffle, if we need to. (TODO: How best to model the timing of a shuffle?)
     // Let's say we want 5 cards available per hand being dealt. If we can't
     // have that, we shuffle.
-    var desiredShoeSize = (players.length + 1) * 5;
+    var desiredShoeSize = (players.length + 1) * 6;
     if (shoe.cardsLeft() < desiredShoeSize) {
       game.emit("story", "Shuffling deck.");
       shoe.shuffle();
@@ -267,11 +271,6 @@ function BlackJackGame(houseRules) {
     return resultingHands;
   }
 
-  // I forget how to do emit right now.
-  this.emit = function(topic, message) {
-    console.log(message);
-  }
-
   this.resolveWinnings = function(playerHands, dealerHand) {
     var game = this;
     var dealerHandValue = dealerHand.getValue();
@@ -322,5 +321,6 @@ function BlackJackGame(houseRules) {
 
   }
 }
+util.inherits(BlackJackGame, EventEmitter);
 
 module.exports = BlackJackGame;
