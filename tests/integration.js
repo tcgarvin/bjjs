@@ -6,6 +6,11 @@ var BasicStrategy = require('../src/strategy/BasicStrategy.js');
 var game = new BlackJackGame({decks:4});
 
 game.on('story', console.log);
+game.on('endround', function() {
+  game.getPlayers().forEach(function(player) {
+    console.log(player.getName() + " has $" + player.getBalance());
+  });
+});
 
 var player1 = new Player(new DealerStrategy());
 player1.setName("A.J.");
@@ -23,8 +28,4 @@ game.addPlayer(basic);
 for(var i = 0; i < 100; i++) {
   console.log("");
   game.doOneRound();
-
-  game.getPlayers().forEach(function(player) {
-    console.log(player.getName() + " has $" + player.getBalance());
-  });
 }

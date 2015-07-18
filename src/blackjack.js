@@ -309,6 +309,7 @@ function BlackJackGame(houseRules) {
 
       playerHand.player.collectWinnings(bet);
     });
+    game.emit("endround", playerHands, dealerHand);
   }
 
   function initHouseRules() {
